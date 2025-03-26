@@ -1,0 +1,69 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+
+export default function MRPApp() {
+  const [demand, setDemand] = useState("50,70,60,80,40,90");
+  const [stock, setStock] = useState(100);
+  const [leadTime, setLeadTime] = useState(1);
+  const [orderSize, setOrderSize] = useState(50);
+  const [results, setResults] = useState([]);
+
+  const handleCalculate = async () => {
+    const response = await fetch("http://localhost:8000/calculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        demand: demand.split(",").map(Number),
+        stock: Number(stock),
+        lead_time: Number(leadTime),
+        order_size: Number(orderSize),
+      }),
+    });
+    const data = await response.json();
+    setResults(data);
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      <h1 className="text-2xl font-bold">MRP Interaktívna Demonštrácia</h1>
+
+      <Card>
+        <CardContent className="space-y-4 p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input value={demand} onChange={(e) => setDemand(e.target.value)} placeholder="Dopyt (napr. 50,70,60...)" />
+            <Input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="Počiatočná zásoba" />
+            <Input type="number" value={leadTime} onChange={(e) => setLeadTime(e.target.value)} placeholder="Dodacia lehota (v týždňoch)" />
+            <Input type="number" value={orderSize} onChange={(e) => setOrderSize(e.target.value)} placeholder="Minimálne objednávacie množstvo" />
+          </div>
+          <Button onClick={handleCalculate}>Vypočítať</Button>
+        </CardContent>
+      </Card>
+
+      {results.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <h2 className="text-xl font-semibold mb-4">Výsledok MRP</h2>
+            <LineChart width={600} height={300} data={results.map((r, i) => ({
+              week: `Týždeň ${i + 1}`,
+              demand: r.demand,
+              stock: r.stock,
+              order: r.order,
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="week" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="demand" stroke="#8884d8" />
+              <Line type="monotone" dataKey="stock" stroke="#82ca9d" />
+              <Line type="monotone" dataKey="order" stroke="#ff7300" />
+            </LineChart>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
